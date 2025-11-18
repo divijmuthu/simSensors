@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/Users/deepshikhakaul/Documents/simSensors/build",
+  "command": "/usr/bin/clang++ -Dsensor_sim_EXPORTS -isystem /opt/homebrew/include -isystem /Library/Frameworks/Python.framework/Versions/3.12/include/python3.12 -isystem /opt/homebrew/include/eigen3 -g -std=gnu++14 -arch arm64 -fPIC -fvisibility=hidden -o CMakeFiles/sensor_sim.dir/src/imu_simulator.cpp.o -c /Users/deepshikhakaul/Documents/simSensors/src/imu_simulator.cpp",
+  "file": "/Users/deepshikhakaul/Documents/simSensors/src/imu_simulator.cpp",
+  "output": "CMakeFiles/sensor_sim.dir/src/imu_simulator.cpp.o"
+},
+{
+  "directory": "/Users/deepshikhakaul/Documents/simSensors/build",
+  "command": "/usr/bin/clang++ -Dsensor_sim_EXPORTS -isystem /opt/homebrew/include -isystem /Library/Frameworks/Python.framework/Versions/3.12/include/python3.12 -isystem /opt/homebrew/include/eigen3 -g -std=gnu++14 -arch arm64 -fPIC -fvisibility=hidden -o CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o -c /Users/deepshikhakaul/Documents/simSensors/src/pybind_wrapper.cpp",
+  "file": "/Users/deepshikhakaul/Documents/simSensors/src/pybind_wrapper.cpp",
+  "output": "CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o"
+}
+]
