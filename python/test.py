@@ -1,15 +1,25 @@
-# python/test.py
-import sensor_sim  # This imports your .so file!
+import sensor_sim
 import time
 
-print("--- Python: Attempting to import C++ module ---")
+print("successfully imported C++ module")
+# create a simulator instance
+sim = sensor_sim.IMUSim(sample_rate_hz=100.0, activityType="walking")
+print("IMUSim instance created.")
 
-# We can now use our C++ class AS IF it were a Python class
-# We pass "EECS Student" to the C++ constructor
-sim = sensor_sim.IMUSim("EECS Student")
+print("Running sim for 10 timesteps, for walking activity:")
+for i in range(10):
+    sim.update()
+    # below come in as numpy, ready to use!
+    accel = sim.get_acceleration() 
+    gyro = sim.get_gyroscope()     
+    
+    print(f"  Time: {sim.get_current_time():.2f}s | Accel: {accel} | Gyro: {gyro}")
 
-print("--- Python: Created C++ object 'sim' ---")
-cpp_message = sensor_sim.helloEverybody()
+print("Test activity change to sitting")
+sim.set_curr_activity("sitting")
 
-print(f"--- Python: Received message from C++! ---")
-print(f"    Message: {cpp_message}")
+for i in range(5):
+    sim.update()
+    accel = sim.get_acceleration()
+    gyro = sim.get_gyroscope()
+    print(f"  Time: {sim.get_current_time():.2f}s | Accel: {accel} | Gyro: {gyro}")
