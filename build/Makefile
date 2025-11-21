@@ -129,6 +129,30 @@ sensor_sim/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/sensor_sim.dir/build.make CMakeFiles/sensor_sim.dir/build
 .PHONY : sensor_sim/fast
 
+src/feature_extractor.o: src/feature_extractor.cpp.o
+.PHONY : src/feature_extractor.o
+
+# target to build an object file
+src/feature_extractor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sensor_sim.dir/build.make CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o
+.PHONY : src/feature_extractor.cpp.o
+
+src/feature_extractor.i: src/feature_extractor.cpp.i
+.PHONY : src/feature_extractor.i
+
+# target to preprocess a source file
+src/feature_extractor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sensor_sim.dir/build.make CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.i
+.PHONY : src/feature_extractor.cpp.i
+
+src/feature_extractor.s: src/feature_extractor.cpp.s
+.PHONY : src/feature_extractor.s
+
+# target to generate assembly for a file
+src/feature_extractor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/sensor_sim.dir/build.make CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.s
+.PHONY : src/feature_extractor.cpp.s
+
 src/imu_simulator.o: src/imu_simulator.cpp.o
 .PHONY : src/imu_simulator.o
 
@@ -186,6 +210,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... sensor_sim"
+	@echo "... src/feature_extractor.o"
+	@echo "... src/feature_extractor.i"
+	@echo "... src/feature_extractor.s"
 	@echo "... src/imu_simulator.o"
 	@echo "... src/imu_simulator.i"
 	@echo "... src/imu_simulator.s"

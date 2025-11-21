@@ -86,10 +86,24 @@ CMakeFiles/sensor_sim.dir/src/imu_simulator.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/sensor_sim.dir/src/imu_simulator.cpp.s"
 	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/deepshikhakaul/Documents/simSensors/src/imu_simulator.cpp -o CMakeFiles/sensor_sim.dir/src/imu_simulator.cpp.s
 
+CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o: CMakeFiles/sensor_sim.dir/flags.make
+CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o: /Users/deepshikhakaul/Documents/simSensors/src/feature_extractor.cpp
+CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o: CMakeFiles/sensor_sim.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/deepshikhakaul/Documents/simSensors/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o -MF CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o.d -o CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o -c /Users/deepshikhakaul/Documents/simSensors/src/feature_extractor.cpp
+
+CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.i"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/deepshikhakaul/Documents/simSensors/src/feature_extractor.cpp > CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.i
+
+CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.s"
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/deepshikhakaul/Documents/simSensors/src/feature_extractor.cpp -o CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.s
+
 CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o: CMakeFiles/sensor_sim.dir/flags.make
 CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o: /Users/deepshikhakaul/Documents/simSensors/src/pybind_wrapper.cpp
 CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o: CMakeFiles/sensor_sim.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/deepshikhakaul/Documents/simSensors/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/deepshikhakaul/Documents/simSensors/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o"
 	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o -MF CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o.d -o CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o -c /Users/deepshikhakaul/Documents/simSensors/src/pybind_wrapper.cpp
 
 CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.i: cmake_force
@@ -103,16 +117,18 @@ CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.s: cmake_force
 # Object files for target sensor_sim
 sensor_sim_OBJECTS = \
 "CMakeFiles/sensor_sim.dir/src/imu_simulator.cpp.o" \
+"CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o" \
 "CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o"
 
 # External object files for target sensor_sim
 sensor_sim_EXTERNAL_OBJECTS =
 
 /Users/deepshikhakaul/Documents/simSensors/python/sensor_sim.cpython-312-darwin.so: CMakeFiles/sensor_sim.dir/src/imu_simulator.cpp.o
+/Users/deepshikhakaul/Documents/simSensors/python/sensor_sim.cpython-312-darwin.so: CMakeFiles/sensor_sim.dir/src/feature_extractor.cpp.o
 /Users/deepshikhakaul/Documents/simSensors/python/sensor_sim.cpython-312-darwin.so: CMakeFiles/sensor_sim.dir/src/pybind_wrapper.cpp.o
 /Users/deepshikhakaul/Documents/simSensors/python/sensor_sim.cpython-312-darwin.so: CMakeFiles/sensor_sim.dir/build.make
 /Users/deepshikhakaul/Documents/simSensors/python/sensor_sim.cpython-312-darwin.so: CMakeFiles/sensor_sim.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/deepshikhakaul/Documents/simSensors/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX shared library /Users/deepshikhakaul/Documents/simSensors/python/sensor_sim.cpython-312-darwin.so"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/deepshikhakaul/Documents/simSensors/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX shared library /Users/deepshikhakaul/Documents/simSensors/python/sensor_sim.cpython-312-darwin.so"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/sensor_sim.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

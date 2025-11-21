@@ -7,9 +7,10 @@ project(sensor_sim) # Give our project a name
 find_package(pybind11 REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-# cook up python module from our files
+# cook up python module 
 pybind11_add_module(sensor_sim SHARED
     src/imu_simulator.cpp
+    src/feature_extractor.cpp 
     src/pybind_wrapper.cpp
 )
 
