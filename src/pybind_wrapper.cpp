@@ -27,9 +27,8 @@ PYBIND11_MODULE(sensor_sim, m) {
 
     // bind FeatureExtractor to a python class
     py::class_<FeatureExtractor>(m, "FeatureExtractor")
-        .def(py::init<int>(), py::arg("window_size"))
+        .def(py::init<int, double>(), py::arg("window_size"), py::arg("sample_rate_hz")) 
         .def("add_sample", &FeatureExtractor::add_sample)
-        // smartly converts vector to np array
         .def("compute_features", &FeatureExtractor::compute_features);
         
     // bind test as well lol
