@@ -6,31 +6,17 @@ const double PI = 3.14159265358979323846;
 FeatureExtractor::FeatureExtractor(int window_size, double computed_sample_rate_hz) 
     : m_window_size(window_size), computed_sample_rate_hz(computed_sample_rate_hz) {
     // reserve some memory for key vector data
-    m_acc_x.reserve(window_size);
-    m_acc_y.reserve(window_size);
-    m_acc_z.reserve(window_size);
-    m_gyro_x.reserve(window_size);
-    m_gyro_y.reserve(window_size);
-    m_gyro_z.reserve(window_size);
 }
 
 void FeatureExtractor::add_sample(const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro) {
-    // push new data to buffers
-    m_acc_x.push_back(accel.x());
-    m_acc_y.push_back(accel.y());
-    m_acc_z.push_back(accel.z());
-    m_gyro_x.push_back(gyro.x());
-    m_gyro_y.push_back(gyro.y());
-    m_gyro_z.push_back(gyro.z());
+    // 1. Add new data to the back
+    m_acc_x.push_back(accel.x()); m_acc_y.push_back(accel.y()); m_acc_z.push_back(accel.z());
+    m_gyro_x.push_back(gyro.x()); m_gyro_y.push_back(gyro.y()); m_gyro_z.push_back(gyro.z());
 
-    // pop excess data if we exceed window size
+    // 2. Remove old data from the front (Optimization: O(1) operation!)
     if (m_acc_x.size() > m_window_size) {
-        m_acc_x.erase(m_acc_x.begin());
-        m_acc_y.erase(m_acc_y.begin());
-        m_acc_z.erase(m_acc_z.begin());
-        m_gyro_x.erase(m_gyro_x.begin());
-        m_gyro_y.erase(m_gyro_y.begin());
-        m_gyro_z.erase(m_gyro_z.begin());
+        m_acc_x.pop_front(); m_acc_y.pop_front(); m_acc_z.pop_front();
+        m_gyro_x.pop_front(); m_gyro_y.pop_front(); m_gyro_z.pop_front();
     }
 }
 
@@ -56,14 +42,14 @@ std::vector<double> FeatureExtractor::compute_features() const {
     return features;
 }
 
-double FeatureExtractor::calc_mean(const std::vector<double>& data) const {
+double FeatureExtractor::calc_mean(const std::deque<double>& data) const {
     if (data.empty()) return 0.0;
     // we can sum vector data with accumulate
     double sum = std::accumulate(data.begin(), data.end(), 0.0);
     return sum / data.size();
 }
 
-double FeatureExtractor::calc_variance(const std::vector<double>& data, double mean) const {
+double FeatureExtractor::calc_variance(const std::deque<double>& data, double mean) const {
     if (data.size() < 2) return 0.0;
     // calc variance using accumulte, lambda fxn
     double sum_sq_diff = std::accumulate(data.begin(), data.end(), 0.0,
@@ -74,7 +60,7 @@ double FeatureExtractor::calc_variance(const std::vector<double>& data, double m
     return sum_sq_diff / data.size();
 }
 
-std::pair<double, double> FeatureExtractor::calc_frequency_features(const std::vector<double>& data) const {
+std::pair<double, double> FeatureExtractor::calc_frequency_features(const std::deque<double>& data) const {
     // DFT computation --> break into N bins, solve for half
     int N = data.size();
     if (N < 2) return {0.0, 0.0};
@@ -104,4 +90,33 @@ std::pair<double, double> FeatureExtractor::calc_frequency_features(const std::v
     // Freq = k * (SampleRate / N) from formula, get freq from bin's index
     double dominant_freq = dominant_bin_idx * (computed_sample_rate_hz / N);
     return {dominant_freq, total_energy};
+}
+
+std::vector<double> FeatureExtractor::get_z_accel_buffer() const {
+    // cast deque to vector to make pybind happy
+    return std::vector<double>(m_acc_z.begin(), m_acc_z.end());
+}
+
+std::vector<double> FeatureExtractor::get_fft_spectrum() const {
+    // does the same FFT logic, gives full info to display later on
+    int N = m_acc_z.size();
+    if (N < 2) return {};
+
+    int num_bins = N / 2;
+    std::vector<double> spectrum;
+    spectrum.reserve(num_bins);
+
+    double mean = calc_mean(m_acc_z);
+
+    // calculate magnitude for every bin
+    for (int k = 0; k < num_bins; ++k) {
+        std::complex<double> sum(0.0, 0.0);
+        for (int n = 0; n < N; ++n) {
+            double angle = -2.0 * PI * k * n / N;
+            std::complex<double> w(std::cos(angle), std::sin(angle));
+            sum += (m_acc_z[n] - mean) * w;
+        }
+        spectrum.push_back(std::abs(sum));
+    }
+    return spectrum;
 }

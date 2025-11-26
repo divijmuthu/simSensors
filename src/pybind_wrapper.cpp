@@ -29,7 +29,9 @@ PYBIND11_MODULE(sensor_sim, m) {
     py::class_<FeatureExtractor>(m, "FeatureExtractor")
         .def(py::init<int, double>(), py::arg("window_size"), py::arg("sample_rate_hz")) 
         .def("add_sample", &FeatureExtractor::add_sample)
-        .def("compute_features", &FeatureExtractor::compute_features);
+        .def("compute_features", &FeatureExtractor::compute_features)
+        .def("get_z_accel_buffer", &FeatureExtractor::get_z_accel_buffer)
+        .def("get_fft_spectrum", &FeatureExtractor::get_fft_spectrum);
         
     // bind test as well lol
     m.def("helloEverybody", &helloEverybody, "A friendly greeting from C++");

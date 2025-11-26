@@ -31,7 +31,7 @@ class ActivityClassifier(nn.Module):
         self.layer1 = nn.Linear(4, 16) 
         self.relu = nn.ReLU()
         # Then hidden 16 neurons -> output between 2 classes (Sit, Walk)
-        self.layer2 = nn.Linear(16, 2)
+        self.layer2 = nn.Linear(16, 4)
         
     def forward(self, x):
         x = self.layer1(x)

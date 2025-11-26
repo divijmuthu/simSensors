@@ -13,7 +13,8 @@ SAMPLES_PER_CLASS = 1000
 ACTIVITIES = [
     ("sitting", 0),
     ("walking", 1),
-    # You can add "running" or "jumping" if you updated the C++ logic!
+    ("running", 2), 
+    ("jumping", 3)  
 ]
 
 def generate_data():

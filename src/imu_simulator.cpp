@@ -42,36 +42,65 @@ void IMUSim::set_curr_activity(const std::string& activity) {
     m_activity_type = activity;
 }
 
-// sim ideal motion
+// UPGRADED sim of raw ideal motion
 IMUDataSample IMUSim::get_ideal_motion(double time_s) {
     IMUDataSample motion;
 
+    // sitting is just plain gravity do nothing more
+    motion.accel = {0.0, 0.0, 9.81};
+    motion.gyro = {0.0, 0.0, 0.0};
+
     if (m_activity_type == "sitting") {
-        // when just sitting, only accel is gravity in z dim
-        motion.accel = {0.0, 0.0, 9.81};
-        motion.gyro = {0.0, 0.0, 0.0};
     }
     else if (m_activity_type == "walking") {
-        // walking: simple sinusoidal accel and gyro
-        double freq = 2.0; // 2 steps per second
-        double accel_amplitude = 0.5; // m/s^2
-        double gyro_amplitude = 20.0; // deg/s
+        // capture w/2 Hz sine wave of bobbing, 2x per sec up/down makes sense
+        double freq = 2.0; 
+        double bob_amp = 0.5; // m/s^2
+        double swing_amp = 20.0; // deg/s
 
-        // capture accel change, say sinusoidal changing in speed
-        motion.accel[0] = 0.0;
-        motion.accel[1] = 0.0;
-        motion.accel[2] = 9.81 + (accel_amplitude * std::sin(2 * M_PI * freq * time_s));
-        
-        // Simulate "leg swinging" i.e. y axis change
-        motion.gyro[0] = 0.0;
-        motion.gyro[1] = gyro_amplitude * std::sin(2 * M_PI * freq * time_s);
-        motion.gyro[2] = 0.0;
+        motion.accel[2] = 9.81 + (bob_amp * std::sin(2 * M_PI * freq * time_s));
+        motion.gyro[1]  = swing_amp * std::sin(2 * M_PI * freq * time_s);
     }
-    // We can add more options for other actions!
-    else {
-        // sitting is default
-        motion.accel = {0.0, 0.0, 9.81};
-        motion.gyro = {0.0, 0.0, 0.0};
+    else if (m_activity_type == "running") {
+        // faster 3.5 Hz bobbing + bigger amplitude for swinging faster movement of legs makes sense
+        double freq = 3.5; 
+        double bob_amp = 2.0;  // more vertical bounce
+        double swing_amp = 60.0; // aggressive leg swing
+
+        motion.accel[2] = 9.81 + (bob_amp * std::sin(2 * M_PI * freq * time_s));
+        motion.gyro[1]  = swing_amp * std::sin(2 * M_PI * freq * time_s);
+    }
+    else if (m_activity_type == "jumping") {
+        // This is complex: IMPULSE physics.
+        // Cycle: 1.5 seconds total.
+        // 0.0 - 0.2s: Push off (High G)
+        // 0.2 - 0.5s: In Air (Zero G)
+        // 0.5 - 0.7s: Landing (Massive G)
+        // 0.7 - 1.5s: Recovery (Standing still)
+        
+        double cycle_len = 1.5;
+        double t_cycle = std::fmod(time_s, cycle_len); // set up cycle track curr time
+
+        if (t_cycle < 0.2) {
+            // push off: +1.5g boost
+            motion.accel[2] = 9.81 + 15.0; 
+        } 
+        else if (t_cycle < 0.5) {
+            // in air --> freefall ~0g
+            motion.accel[2] = 0.1; 
+        }
+        else if (t_cycle < 0.7) {
+            // landing = hard impact +2.5g
+            motion.accel[2] = 9.81 + 25.0;
+        }
+        else {
+            // recovery = just gravity
+            motion.accel[2] = 9.81;
+        }
+        // incorporate noise here for the impact
+        if (t_cycle < 0.7) {
+             motion.gyro[0] = 10.0 * std::sin(time_s * 20.0);
+        }
     }
 
     return motion;
@@ -79,8 +108,7 @@ IMUDataSample IMUSim::get_ideal_motion(double time_s) {
 
 // incorporate noise
 IMUDataSample IMUSim::get_noisy_sample(const IMUDataSample& ideal_sample) {
-    // This is the core signal processing math
-    // We convert "noise density" (in /sqrt(Hz)) to
+    // convert "noise density" (in /sqrt(Hz)) to
     // "standard deviation for our sample rate" (in units)
     double accel_std_dev = m_accel_noise_density / std::sqrt(m_time_step);
     double gyro_std_dev = m_gyro_noise_density / std::sqrt(m_time_step);
@@ -98,7 +126,7 @@ IMUDataSample IMUSim::get_noisy_sample(const IMUDataSample& ideal_sample) {
 
 // handle changes in bias
 void IMUSim::update_biases() {
-    // This simulates a "random walk" for the bias
+    // simulates a "random walk" for the bias
     double accel_drift_std_dev = m_accel_bias_instability * std::sqrt(m_time_step);
     double gyro_drift_std_dev = m_gyro_bias_instability * std::sqrt(m_time_step);
 
