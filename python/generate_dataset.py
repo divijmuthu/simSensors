@@ -4,7 +4,7 @@ import pandas as pd
 import os
 
 # config
-WINDOW_SIZE = 64
+WINDOW_SIZE = 256
 SAMPLE_RATE = 100.0
 SAMPLES_PER_CLASS = 1000
 
