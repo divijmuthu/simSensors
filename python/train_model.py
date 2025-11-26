@@ -27,16 +27,24 @@ X_train, X_test, y_train, y_test = train_test_split(X_tensor, y_tensor, test_siz
 class ActivityClassifier(nn.Module):
     def __init__(self):
         super(ActivityClassifier, self).__init__()
-        # input w/4 features, 16 hidden neurons
-        self.layer1 = nn.Linear(4, 16) 
+        # 32 neurons in layer 1
+        self.layer1 = nn.Linear(4, 32)
         self.relu = nn.ReLU()
-        # Then hidden 16 neurons -> output between 2 classes (Sit, Walk)
-        self.layer2 = nn.Linear(16, 4)
+        # dropout: randomly zero out 20% of neurons during training
+        # forces the model to not rely on any single "noise" pixel
+        self.dropout = nn.Dropout(0.2)
+        # another layer of 32 neurons --> 16
+        self.layer2 = nn.Linear(32, 16)
+        # output from 16 --> 4 classes
+        self.output = nn.Linear(16, 4)
         
     def forward(self, x):
         x = self.layer1(x)
         x = self.relu(x)
+        x = self.dropout(x) # apply dropout
         x = self.layer2(x)
+        x = self.relu(x)
+        x = self.output(x)
         return x
 
 model = ActivityClassifier()

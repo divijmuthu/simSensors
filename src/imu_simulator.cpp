@@ -45,61 +45,62 @@ void IMUSim::set_curr_activity(const std::string& activity) {
 // UPGRADED sim of raw ideal motion
 IMUDataSample IMUSim::get_ideal_motion(double time_s) {
     IMUDataSample motion;
-
-    // sitting is just plain gravity do nothing more
+    // basic gravity
     motion.accel = {0.0, 0.0, 9.81};
     motion.gyro = {0.0, 0.0, 0.0};
-
     if (m_activity_type == "sitting") {
+        // to capture 'breathing' add a tiny 0.3 Hz sine wave
+        // some amplitude 0.05 m/s^2 is visible, not just silence
+        motion.accel[2] = 9.81 + (0.05 * std::sin(2 * M_PI * 0.3 * time_s));
+        // tiny random shifting on gyro ppl naturally move lol
+        motion.gyro[0] = 0.5 * std::sin(2 * M_PI * 0.1 * time_s);
     }
     else if (m_activity_type == "walking") {
-        // capture w/2 Hz sine wave of bobbing, 2x per sec up/down makes sense
         double freq = 2.0; 
-        double bob_amp = 0.5; // m/s^2
-        double swing_amp = 20.0; // deg/s
-
+        double bob_amp = 0.5; 
+        double swing_amp = 20.0; 
         motion.accel[2] = 9.81 + (bob_amp * std::sin(2 * M_PI * freq * time_s));
         motion.gyro[1]  = swing_amp * std::sin(2 * M_PI * freq * time_s);
     }
     else if (m_activity_type == "running") {
-        // faster 3.5 Hz bobbing + bigger amplitude for swinging faster movement of legs makes sense
         double freq = 3.5; 
-        double bob_amp = 2.0;  // more vertical bounce
-        double swing_amp = 60.0; // aggressive leg swing
-
+        double bob_amp = 2.0;  
+        double swing_amp = 60.0; 
         motion.accel[2] = 9.81 + (bob_amp * std::sin(2 * M_PI * freq * time_s));
         motion.gyro[1]  = swing_amp * std::sin(2 * M_PI * freq * time_s);
     }
     else if (m_activity_type == "jumping") {
-        // This is complex: IMPULSE physics.
-        // Cycle: 1.5 seconds total.
-        // 0.0 - 0.2s: Push off (High G)
-        // 0.2 - 0.5s: In Air (Zero G)
-        // 0.5 - 0.7s: Landing (Massive G)
-        // 0.7 - 1.5s: Recovery (Standing still)
-        
         double cycle_len = 1.5;
-        double t_cycle = std::fmod(time_s, cycle_len); // set up cycle track curr time
-
+        double t_cycle = std::fmod(time_s, cycle_len); 
         if (t_cycle < 0.2) {
-            // push off: +1.5g boost
+            // push off
             motion.accel[2] = 9.81 + 15.0; 
         } 
         else if (t_cycle < 0.5) {
-            // in air --> freefall ~0g
+            // in-air
             motion.accel[2] = 0.1; 
         }
         else if (t_cycle < 0.7) {
-            // landing = hard impact +2.5g
+            // landing impact
             motion.accel[2] = 9.81 + 25.0;
         }
         else {
-            // recovery = just gravity
-            motion.accel[2] = 9.81;
+            // UPGRADE 2: Post-landing stabilization (The "Wobble")
+            // Instead of perfect stillness, we simulate a damped oscillation
+            // as the person regains balance.
+            double t_rec = t_cycle - 0.7; // Time since landing
+            // Decay factor: Vibrations stop after ~0.5s
+            double decay = std::exp(-t_rec * 5.0); 
+            // 5 Hz wobble (shaking legs)
+            double wobble = 3.0 * decay * std::sin(2 * M_PI * 5.0 * t_rec);
+            motion.accel[2] = 9.81 + wobble;
+            // Also wobble the gyro (instability)
+            motion.gyro[0] = 10.0 * decay * std::sin(2 * M_PI * 5.0 * t_rec);
         }
-        // incorporate noise here for the impact
+        
+        // impact noise on gyro
         if (t_cycle < 0.7) {
-             motion.gyro[0] = 10.0 * std::sin(time_s * 20.0);
+             motion.gyro[0] += 10.0 * std::sin(time_s * 20.0);
         }
     }
 
