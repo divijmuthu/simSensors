@@ -23,12 +23,14 @@ PYBIND11_MODULE(sensor_sim, m) {
         
         // expose getters, eigen will convert to numpy!
         .def("get_acceleration", &IMUSim::get_acceleration)
-        .def("get_gyroscope", &IMUSim::get_gyroscope);
+        .def("get_gyroscope", &IMUSim::get_gyroscope)
+        // add barometer getter
+        .def("get_pressure", &IMUSim::get_pressure);
 
     // bind FeatureExtractor to a python class
     py::class_<FeatureExtractor>(m, "FeatureExtractor")
         .def(py::init<int, double>(), py::arg("window_size"), py::arg("sample_rate_hz")) 
-        .def("add_sample", &FeatureExtractor::add_sample)
+        .def("add_sample", &FeatureExtractor::add_sample, py::arg("accel"), py::arg("gyro"), py::arg("pressure"))
         .def("compute_features", &FeatureExtractor::compute_features)
         .def("get_z_accel_buffer", &FeatureExtractor::get_z_accel_buffer)
         .def("get_fft_spectrum", &FeatureExtractor::get_fft_spectrum);

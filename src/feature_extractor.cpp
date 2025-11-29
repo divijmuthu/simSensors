@@ -8,15 +8,17 @@ FeatureExtractor::FeatureExtractor(int window_size, double computed_sample_rate_
     // reserve some memory for key vector data
 }
 
-void FeatureExtractor::add_sample(const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro) {
-    // 1. Add new data to the back
+void FeatureExtractor::add_sample(const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, double pressure) {
+    // new data joins from the end of the deque
     m_acc_x.push_back(accel.x()); m_acc_y.push_back(accel.y()); m_acc_z.push_back(accel.z());
     m_gyro_x.push_back(gyro.x()); m_gyro_y.push_back(gyro.y()); m_gyro_z.push_back(gyro.z());
+    m_pressure.push_back(pressure);
 
-    // 2. Remove old data from the front (Optimization: O(1) operation!)
+    // remove old data from the front of the deque
     if (m_acc_x.size() > m_window_size) {
         m_acc_x.pop_front(); m_acc_y.pop_front(); m_acc_z.pop_front();
         m_gyro_x.pop_front(); m_gyro_y.pop_front(); m_gyro_z.pop_front();
+        m_pressure.pop_front();
     }
 }
 
@@ -38,6 +40,9 @@ std::vector<double> FeatureExtractor::compute_features() const {
     std::pair<double, double> freq_feats = calc_frequency_features(m_acc_z);
     features.push_back(freq_feats.first);  // Dom freq in Hz
     features.push_back(freq_feats.second); // Spectral energy
+
+    // add our vertical velocity feature via pressure data
+    features.push_back(calc_vertical_velocity());
 
     return features;
 }
@@ -119,4 +124,24 @@ std::vector<double> FeatureExtractor::get_fft_spectrum() const {
         spectrum.push_back(std::abs(sum));
     }
     return spectrum;
+}
+
+double FeatureExtractor::calc_vertical_velocity() const {
+    // wait 1 sec for pressure difference
+    int one_sec_samples = (int)computed_sample_rate_hz;
+    if (m_pressure.size() <= one_sec_samples) return 0.0;
+    // grab curr pressure
+    double p_now = m_pressure.back();
+    // check 1 sec ago for prev pressure
+    int idx_old = m_pressure.size() - 1 - one_sec_samples;
+    if (idx_old < 0) idx_old = 0; // Safety clamp
+    double p_old = m_pressure[idx_old];
+    // calc diff in pa 
+    double diff_pa = p_now - p_old;
+    // Convert to Meters (Approx 12 Pa = 1 Meter)
+    // Note: Pressure GOES DOWN as height GOES UP. 
+    // So negative pressure diff = positive height gain.
+    double height_change = -(diff_pa / 12.0);
+    // Velocity = Distance / Time (Time is 1.0s)
+    return height_change; 
 }

@@ -17,8 +17,10 @@ RED = (200, 50, 50)     # sitting
 GREEN = (50, 200, 50)   # walking
 BLUE = (50, 50, 200)    # running
 YELLOW = (200, 200, 50) # jumping
+CYAN = (50, 200, 200)   # stairs
+MAGENTA = (200, 50, 200)# elevator
 GRAY = (200, 200, 200)
-BRIGHT_BLUE = (0, 100, 255) # For UI Input feedback
+BRIGHT_BLUE = (0, 100, 255)
 
 # --- AI CONFIGURATION ---
 # CRITICAL: This class must match train_model.py EXACTLY
@@ -26,11 +28,11 @@ class ActivityClassifier(torch.nn.Module):
     def __init__(self):
         super(ActivityClassifier, self).__init__()
         # Upgrade to 32 neurons (matches the Brain Upgrade)
-        self.layer1 = torch.nn.Linear(4, 32)
+        self.layer1 = torch.nn.Linear(5, 64)
         self.relu = torch.nn.ReLU()
         # Note: Dropout is not needed for Inference/Eval
-        self.layer2 = torch.nn.Linear(32, 16)
-        self.output = torch.nn.Linear(16, 4)
+        self.layer2 = torch.nn.Linear(64, 32)
+        self.output = torch.nn.Linear(32, 6)
         
     def forward(self, x):
         x = self.layer1(x)
@@ -56,37 +58,36 @@ def draw_stick_figure(screen, activity, confidence, frame_count):
     elif activity == "WALKING": color = GREEN
     elif activity == "RUNNING": color = BLUE
     elif activity == "JUMPING": color = YELLOW
+    elif activity == "STAIRS": color = CYAN
+    elif activity == "ELEVATOR": color = MAGENTA
     else: color = BLACK
 
     # Animation Physics
     offset_y = 0
     leg_spread = 0
     
-    if activity == "WALKING":
-        # Slow bob (freq 0.2)
+    if activity in ["WALKING", "STAIRS"]:
+        # Slow bob
         offset_y = math.sin(frame_count * 0.2) * 10
         leg_spread = math.sin(frame_count * 0.2) * 20
         
     elif activity == "RUNNING":
-        # Fast bob (freq 0.5), higher knees
+        # Fast bob
         offset_y = math.sin(frame_count * 0.5) * 15
         leg_spread = math.sin(frame_count * 0.5) * 30
         
     elif activity == "JUMPING":
-        # Manual Impulse Animation
-        jump_phase = (frame_count % 60) / 60.0 # 1 second loop
-        if jump_phase < 0.2: # Crouch
-            offset_y = 10
-            leg_spread = 30
-        elif jump_phase < 0.5: # Air
-            offset_y = -40 # FLY UP!
-            leg_spread = 10
-        elif jump_phase < 0.6: # Land
-            offset_y = 20
-            leg_spread = 40
-        else: # Recover
-            offset_y = 0
-            leg_spread = 0
+        # Jump Loop
+        jump_phase = (frame_count % 60) / 60.0
+        if jump_phase < 0.2: offset_y, leg_spread = 10, 30
+        elif jump_phase < 0.5: offset_y, leg_spread = -40, 10
+        elif jump_phase < 0.6: offset_y, leg_spread = 20, 40
+        else: offset_y, leg_spread = 0, 0
+    
+    elif activity == "ELEVATOR":
+        # Standing still, maybe arrow indication?
+        offset_y = 0
+        leg_spread = 0
 
     # Draw Head
     pygame.draw.circle(screen, color, (cx, cy - 50 + offset_y), 20, 5)
@@ -95,7 +96,7 @@ def draw_stick_figure(screen, activity, confidence, frame_count):
     
     # Arms (Simple swing)
     arm_swing = 0
-    if activity in ["WALKING", "RUNNING"]:
+    if activity in ["WALKING", "RUNNING", "STAIRS"]:
         arm_swing = math.sin(frame_count * 0.2) * 20
     pygame.draw.line(screen, color, (cx - 30, cy + offset_y - arm_swing), (cx + 30, cy + offset_y + arm_swing), 5)
     
@@ -129,7 +130,7 @@ def draw_ui(screen, true_state, input_features):
     title = font.render("Live C++ Features", True, BLACK)
     screen.blit(title, (460, 120))
     
-    labels = ["Mean Acc Z", "Var Acc Z", "Dom Freq", "Spectral E"]
+    labels = ["Mean Acc Z", "Var Acc Z", "Dom Freq", "Energy", "Vert Vel"]
     for i, label in enumerate(labels):
         val_text = font.render(f"{label}: {input_features[i]:.4f}", True, BLACK)
         screen.blit(val_text, (460, 160 + i*40))
@@ -152,37 +153,37 @@ def main():
     # UI Variables
     pred_label = "SITTING"
     confidence = 0.0
-    latest_features = [0,0,0,0]
+    latest_features = [0,0,0,0,0]
     
     # Label Map
-    LABELS = {0: "SITTING", 1: "WALKING", 2: "RUNNING", 3: "JUMPING"}
+    # Label Map (Matches generate_dataset.py)
+    LABELS = {
+        0: "SITTING", 1: "WALKING", 2: "RUNNING", 
+        3: "JUMPING", 4: "STAIRS", 5: "ELEVATOR"
+    }
+    
+    ACT_LIST = ["sitting", "walking", "running", "jumping", "stairs_up", "elevator_up"]
+    act_idx = 0
     
     running = True
     while running:
-        # A. Handle Inputs
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    # Cycle Activities
-                    if true_activity == "sitting": true_activity = "walking"
-                    elif true_activity == "walking": true_activity = "running"
-                    elif true_activity == "running": true_activity = "jumping"
-                    else: true_activity = "sitting"
-                    
+                    act_idx = (act_idx + 1) % len(ACT_LIST)
+                    true_activity = ACT_LIST[act_idx]
                     sim.set_curr_activity(true_activity)
 
-        # B. Run Simulation (Speed up x2 for responsiveness)
         for _ in range(2): 
             sim.update()
-            extractor.add_sample(sim.get_acceleration(), sim.get_gyroscope())
+            # [UPDATED] Pass Pressure
+            extractor.add_sample(sim.get_acceleration(), sim.get_gyroscope(), sim.get_pressure())
 
-        # C. AI Inference
         raw_feats = np.array(extractor.compute_features())
         latest_features = raw_feats
         
-        # Normalize
         norm_feats = (raw_feats - train_mean) / train_std
         tensor_feats = torch.tensor(norm_feats, dtype=torch.float32).unsqueeze(0)
         
@@ -191,12 +192,10 @@ def main():
             probs = torch.softmax(outputs, dim=1)
             conf, cls_idx = torch.max(probs, 1)
             
-            # Map index to string
             idx = cls_idx.item()
             pred_label = LABELS.get(idx, "UNKNOWN")
             confidence = conf.item() * 100
 
-        # D. Rendering
         screen.fill(WHITE)
         draw_stick_figure(screen, pred_label, confidence, frame_count)
         draw_ui(screen, true_activity.upper(), latest_features)

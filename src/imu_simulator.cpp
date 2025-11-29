@@ -11,7 +11,10 @@ IMUSim::IMUSim(double sample_rate_hz, const std::string& activityType)
       m_latest_gyro(Eigen::Vector3d::Zero()),
       m_norm_dist(0.0, 1.0), // Mean 0, StdDev 1
       m_accel_bias(Eigen::Vector3d::Zero()),
-      m_gyro_bias(Eigen::Vector3d::Zero())
+      m_gyro_bias(Eigen::Vector3d::Zero()),
+      m_base_pressure(101325.0), // Standard sea level pressure
+      m_pressure_noise_density(4.0), // Pascals (Barometers are noisy!)
+      m_latest_pressure(101325.0)
 {
     // Seed the random number generator
     std::random_device rd;
@@ -36,6 +39,11 @@ void IMUSim::update() {
     // store latest noisy data
     m_latest_accel = noisy.accel;
     m_latest_gyro = noisy.gyro;
+
+    // barometer updates, compute pressure + noise
+    double ideal_pressure = get_ideal_pressure(m_current_time);
+    double noise = m_norm_dist(m_rng) * m_pressure_noise_density;
+    m_latest_pressure = ideal_pressure + noise;
 }
 
 void IMUSim::set_curr_activity(const std::string& activity) {
@@ -135,6 +143,31 @@ void IMUSim::update_biases() {
         m_accel_bias[i] += m_norm_dist(m_rng) * accel_drift_std_dev;
         m_gyro_bias[i]  += m_norm_dist(m_rng) * gyro_drift_std_dev;
     }
+}
+
+double IMUSim::get_ideal_pressure(double time_s) {
+    double height_meters = 0.0;
+    
+    if (m_activity_type == "stairs_up") {
+        // Climbing: 0.5 m/s linear ascent
+        // We add a tiny "step" wobble to match the walking rhythm
+        double step_wobble = 0.1 * std::sin(2 * M_PI * 1.5 * time_s);
+        height_meters = (0.5 * time_s) + step_wobble;
+    }
+    else if (m_activity_type == "elevator_up") {
+        // Elevator: Fast 2.0 m/s smooth ascent
+        // Usually has a "jerk" (acceleration) at start/stop, but linear is fine for now
+        height_meters = 2.0 * time_s;
+    }
+    else {
+        // Flat ground: Height is 0 (relative)
+        // Add tiny weather drift (slow random walk) if you want to be fancy
+        height_meters = 0.0;
+    }
+
+    // Physics Formula: P = P0 - (rho * g * h)
+    // Approx: Drop 12 Pa per meter
+    return m_base_pressure - (12.0 * height_meters);
 }
 
 // basic test

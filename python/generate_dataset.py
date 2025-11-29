@@ -14,7 +14,9 @@ ACTIVITIES = [
     ("sitting", 0),
     ("walking", 1),
     ("running", 2), 
-    ("jumping", 3)  
+    ("jumping", 3),
+    ("stairs_up", 4),
+    ("elevator_up", 5)
 ]
 
 def generate_data():
@@ -29,18 +31,18 @@ def generate_data():
         # fill buffer initially
         for _ in range(WINDOW_SIZE):
             sim.update()
-            extractor.add_sample(sim.get_acceleration(), sim.get_gyroscope())
+            extractor.add_sample(sim.get_acceleration(), sim.get_gyroscope(), sim.get_pressure())
         # now collect samples
         for i in range(SAMPLES_PER_CLASS):
             sim.update()
-            extractor.add_sample(sim.get_acceleration(), sim.get_gyroscope())
+            extractor.add_sample(sim.get_acceleration(), sim.get_gyroscope(), sim.get_pressure())
             # grab curr window's features
             feats = extractor.compute_features()
             # Save: [Features..., Label]
             row = list(feats) + [label_id]
             dataset.append(row)
     # convert to df, save
-    cols = ["Mean_Az", "Var_Az", "Dom_Freq", "Energy", "Label"]
+    cols = ["Mean_Az", "Var_Az", "Dom_Freq", "Energy", "Vert_Vel", "Label"]
     df = pd.DataFrame(dataset, columns=cols)
     output_file = "imu_dataset.csv"
     df.to_csv(output_file, index=False)

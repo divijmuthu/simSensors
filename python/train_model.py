@@ -28,15 +28,15 @@ class ActivityClassifier(nn.Module):
     def __init__(self):
         super(ActivityClassifier, self).__init__()
         # 32 neurons in layer 1
-        self.layer1 = nn.Linear(4, 32)
+        self.layer1 = nn.Linear(5, 64)
         self.relu = nn.ReLU()
         # dropout: randomly zero out 20% of neurons during training
         # forces the model to not rely on any single "noise" pixel
         self.dropout = nn.Dropout(0.2)
-        # another layer of 32 neurons --> 16
-        self.layer2 = nn.Linear(32, 16)
-        # output from 16 --> 4 classes
-        self.output = nn.Linear(16, 4)
+        # another layer of 64 neurons --> 32
+        self.layer2 = nn.Linear(64, 32)
+        # output from 32 --> 6 classes
+        self.output = nn.Linear(32, 6)
         
     def forward(self, x):
         x = self.layer1(x)
@@ -54,7 +54,7 @@ criterion = nn.CrossEntropyLoss()  # good loss choice for multi-class classifica
 optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 print("--- Starting Training ---")
-epochs = 100
+epochs = 300
 
 for epoch in range(epochs):
     # forward pass

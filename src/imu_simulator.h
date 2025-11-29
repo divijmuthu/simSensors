@@ -21,6 +21,9 @@ class IMUSim {
         // be able to update activity
         void set_curr_activity(const std::string& activity);
 
+        // new data: barometer pressure 
+        double get_pressure() const { return m_latest_pressure; }
+
     private:
         // helper for raw motion info
         IMUDataSample get_ideal_motion(double time_s);
@@ -47,6 +50,12 @@ class IMUSim {
         // Noise State drifting over time
         Eigen::Vector3d m_accel_bias;
         Eigen::Vector3d m_gyro_bias;
+
+        // New barometer sim params
+        double get_ideal_pressure(double time_s);
+        double m_latest_pressure;       // Current reading (Pascals)
+        double m_base_pressure;         // Sea level (approx 101325 Pa)
+        double m_pressure_noise_density;// Sensor noise
 };
 
 std::string helloEverybody();
