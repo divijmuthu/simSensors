@@ -49,10 +49,33 @@ def load_model():
     model.eval()
     return model, checkpoint['mean'], checkpoint['std']
 
-# --- DRAWING HELPERS ---
+def draw_environment_cues(screen, activity, cx, cy, frame_count):
+    if activity == "ELEVATOR":
+        # Draw the "Box"
+        rect_color = (100, 100, 100) # Dark Gray
+        # Box around the player
+        pygame.draw.rect(screen, rect_color, (cx - 60, cy - 100, 120, 240), 5)
+        
+        # Draw Up/Down Arrows moving
+        arrow_y = (frame_count * 2) % 50
+        pygame.draw.polygon(screen, rect_color, [(cx + 80, cy - 20 - arrow_y), (cx + 90, cy - arrow_y), (cx + 70, cy - arrow_y)])
+
+    elif activity == "STAIRS":
+        # Draw jagged steps
+        step_color = (50, 200, 200) # Cyan
+        start_x, start_y = cx - 100, cy + 120
+        points = []
+        for i in range(5):
+            points.append((start_x + i*40, start_y - i*40))
+            points.append((start_x + (i+1)*40, start_y - i*40))
+        pygame.draw.lines(screen, step_color, False, points, 5)
+
 def draw_stick_figure(screen, activity, confidence, frame_count):
     cx, cy = 200, 300
     
+    # [NEW] Draw context first (so it's behind the person)
+    draw_environment_cues(screen, activity, cx, cy, frame_count)
+
     # Color Coding
     if activity == "SITTING": color = RED
     elif activity == "WALKING": color = GREEN
@@ -77,7 +100,6 @@ def draw_stick_figure(screen, activity, confidence, frame_count):
         leg_spread = math.sin(frame_count * 0.5) * 30
         
     elif activity == "JUMPING":
-        # Jump Loop
         jump_phase = (frame_count % 60) / 60.0
         if jump_phase < 0.2: offset_y, leg_spread = 10, 30
         elif jump_phase < 0.5: offset_y, leg_spread = -40, 10
@@ -85,8 +107,8 @@ def draw_stick_figure(screen, activity, confidence, frame_count):
         else: offset_y, leg_spread = 0, 0
     
     elif activity == "ELEVATOR":
-        # Standing still, maybe arrow indication?
-        offset_y = 0
+        # Standing still, maybe subtle vibration?
+        offset_y = math.sin(frame_count * 0.8) * 1 # Tiny engine vibration
         leg_spread = 0
 
     # Draw Head
@@ -94,7 +116,7 @@ def draw_stick_figure(screen, activity, confidence, frame_count):
     # Draw Body
     pygame.draw.line(screen, color, (cx, cy - 30 + offset_y), (cx, cy + 50 + offset_y), 5)
     
-    # Arms (Simple swing)
+    # Arms
     arm_swing = 0
     if activity in ["WALKING", "RUNNING", "STAIRS"]:
         arm_swing = math.sin(frame_count * 0.2) * 20
@@ -104,7 +126,7 @@ def draw_stick_figure(screen, activity, confidence, frame_count):
     pygame.draw.line(screen, color, (cx, cy + 50 + offset_y), (cx - 20 - leg_spread, cy + 100 + offset_y), 5)
     pygame.draw.line(screen, color, (cx, cy + 50 + offset_y), (cx + 20 + leg_spread, cy + 100 + offset_y), 5)
 
-    # Label (The AI's Opinion)
+    # Label
     font = pygame.font.SysFont(None, 40)
     text = font.render(f"AI: {activity} ({confidence:.1f}%)", True, color)
     screen.blit(text, (cx - 80, cy + 130))
