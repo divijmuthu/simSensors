@@ -28,12 +28,17 @@ PYBIND11_MODULE(sensor_sim, m) {
         .def("get_pressure", &IMUSim::get_pressure)
         // expose prox sensor
         .def("get_proximity", &IMUSim::get_proximity)
-        .def("set_obstacle_distance", &IMUSim::set_obstacle_distance, py::arg("distance_meters"));
+        .def("set_obstacle_distance", &IMUSim::set_obstacle_distance, py::arg("distance_meters"))
+        // expose GPS + magnetometer
+        .def("set_velocity", &IMUSim::set_velocity)
+        .def("get_magnetometer", &IMUSim::get_magnetometer)
+        .def("get_latitude", &IMUSim::get_latitude)
+        .def("get_longitude", &IMUSim::get_longitude);
 
     // bind FeatureExtractor to a python class
     py::class_<FeatureExtractor>(m, "FeatureExtractor")
         .def(py::init<int, double>(), py::arg("window_size"), py::arg("sample_rate_hz")) 
-        .def("add_sample", &FeatureExtractor::add_sample, py::arg("accel"), py::arg("gyro"), py::arg("pressure"))
+        .def("add_sample", &FeatureExtractor::add_sample, py::arg("accel"), py::arg("gyro"), py::arg("mag"), py::arg("pressure"))
         .def("compute_features", &FeatureExtractor::compute_features)
         .def("get_z_accel_buffer", &FeatureExtractor::get_z_accel_buffer)
         .def("get_fft_spectrum", &FeatureExtractor::get_fft_spectrum);

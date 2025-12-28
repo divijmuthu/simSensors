@@ -8,16 +8,18 @@ FeatureExtractor::FeatureExtractor(int window_size, double computed_sample_rate_
     // reserve some memory for key vector data
 }
 
-void FeatureExtractor::add_sample(const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, double pressure) {
+void FeatureExtractor::add_sample(const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector3d& mag, double pressure) {
     // new data joins from the end of the deque
     m_acc_x.push_back(accel.x()); m_acc_y.push_back(accel.y()); m_acc_z.push_back(accel.z());
     m_gyro_x.push_back(gyro.x()); m_gyro_y.push_back(gyro.y()); m_gyro_z.push_back(gyro.z());
+    m_mag_x.push_back(mag.x()); m_mag_y.push_back(mag.y()); m_mag_z.push_back(mag.z());
     m_pressure.push_back(pressure);
 
     // remove old data from the front of the deque
     if (m_acc_x.size() > m_window_size) {
         m_acc_x.pop_front(); m_acc_y.pop_front(); m_acc_z.pop_front();
         m_gyro_x.pop_front(); m_gyro_y.pop_front(); m_gyro_z.pop_front();
+        m_mag_x.pop_front(); m_mag_y.pop_front(); m_mag_z.pop_front();
         m_pressure.pop_front();
     }
 }
@@ -43,6 +45,10 @@ std::vector<double> FeatureExtractor::compute_features() const {
 
     // add our vertical velocity feature via pressure data
     features.push_back(calc_vertical_velocity());
+
+    // Magnetometer Mean X & Y (Heading info)
+    features.push_back(calc_mean(m_mag_x));
+    features.push_back(calc_mean(m_mag_y));
 
     return features;
 }

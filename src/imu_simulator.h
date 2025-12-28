@@ -18,6 +18,7 @@ class IMUSim {
         // getters for IMU
         Eigen::Vector3d get_acceleration() const { return m_latest_accel; }
         Eigen::Vector3d get_gyroscope() const    { return m_latest_gyro; }
+        Eigen::Vector3d get_magnetometer() const { return m_latest_mag; }
         double get_current_time() const          { return m_current_time; }
         // be able to update activity
         void set_curr_activity(const std::string& activity);
@@ -27,6 +28,11 @@ class IMUSim {
         double get_proximity() const             { return m_latest_proximity; }
         // setter for the ground truth distance
         void set_obstacle_distance(double distance_meters);
+        // GPS getters
+        double get_latitude() const  { return m_gps_lat; }
+        double get_longitude() const { return m_gps_lon; }
+        // set global velocity/ground truth
+        void set_velocity(double velocity_mps);
 
     private:
         // helper for raw motion info
@@ -38,6 +44,9 @@ class IMUSim {
 
         // helper for proximity sensor 
         double calculate_proximity_reading();
+
+        // GPS + magnetometer helper
+        void update_gps_and_mag();
 
         double m_current_time;
         double m_sample_rate;
@@ -71,6 +80,12 @@ class IMUSim {
         double m_latest_proximity;    // Noisy sensor output
         double m_prox_max_range;      // e.g., 4.0 meters
         double m_prox_noise_coeff;    // Noise increases with distance
+
+        Eigen::Vector3d m_latest_mag; // Latest magnetometer reading
+        // GPS state
+        double m_gps_lat;
+        double m_gps_lon;
+        double m_world_velocity; // Speed from PyGame
 };
 
 std::string helloEverybody();

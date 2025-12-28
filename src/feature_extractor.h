@@ -11,7 +11,7 @@ public:
     // we'll maintain a rolling window of fixed size
     FeatureExtractor(int window_size, double computed_sample_rate_hz);
     // Add new samples, pop prev
-    void add_sample(const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, double pressure);
+    void add_sample(const Eigen::Vector3d& accel, const Eigen::Vector3d& gyro, const Eigen::Vector3d& mag, double pressure);
     // compute features over current window
     std::vector<double> compute_features() const;
     std::vector<double> get_z_accel_buffer() const;
@@ -25,6 +25,7 @@ private:
     std::deque<double> m_acc_x, m_acc_y, m_acc_z;
     std::deque<double> m_gyro_x, m_gyro_y, m_gyro_z;
     std::deque<double> m_pressure;
+    std::deque<double> m_mag_x, m_mag_y, m_mag_z; 
 
     // math helpers
     double calc_mean(const std::deque<double>& data) const;

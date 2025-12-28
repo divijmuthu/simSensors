@@ -5,8 +5,8 @@ import sensor_sim
 import math
 
 # --- CONFIGURATION ---
-WINDOW_WIDTH = 900  # Wider for dashboard
-WINDOW_HEIGHT = 700 # Taller for split screen
+WINDOW_WIDTH = 900  
+WINDOW_HEIGHT = 700 
 FPS = 60
 SIM_RATE = 100.0
 WINDOW_SIZE = 256
@@ -129,11 +129,12 @@ def draw_wall_and_sensor(screen, cx, cy, sim_distance):
     pixel_dist = sim_distance * 100 # 1m = 100px
     if pixel_dist > (wall_x - cx): pixel_dist = wall_x - cx
 
-    # Color Logic
-    if sim_distance >= 4.0:
+    # Color Logic (Updated for 8.0m Range)
+    if sim_distance >= 8.0:
         cone_color = (200, 200, 200, 50) # Out of range
     else:
-        alpha = max(50, 255 - int(sim_distance * 60))
+        # Slower fade for 8m range
+        alpha = max(30, 255 - int(sim_distance * 30))
         cone_color = (0, 255, 0, alpha)
 
     # Draw Beam
@@ -153,41 +154,43 @@ def draw_dashboard(screen, true_state, input_features, tof_val):
     font_bold = pygame.font.SysFont(None, 30)
     title_font = pygame.font.SysFont(None, 36)
 
-    # --- COLUMN 1: CONTROLS & STATE ---
-    pygame.draw.rect(screen, WHITE, (20, WORLD_HEIGHT + 20, 250, 160), border_radius=10)
+    # --- COLUMN 1: CONTROLS & STATE (Widened to 270px) ---
+    pygame.draw.rect(screen, WHITE, (20, WORLD_HEIGHT + 20, 270, 160), border_radius=10)
     screen.blit(title_font.render("System Control", True, BLACK), (30, WORLD_HEIGHT + 30))
     
     screen.blit(font.render("SPACE: Toggle Activity", True, DARK_GRAY), (30, WORLD_HEIGHT + 70))
     screen.blit(font.render("ARROWS: Move Character", True, DARK_GRAY), (30, WORLD_HEIGHT + 95))
     
-    # Active State Box
-    pygame.draw.rect(screen, (230, 240, 255), (30, WORLD_HEIGHT + 130, 230, 40), border_radius=5)
+    # Active State Box (Widened to 250px)
+    pygame.draw.rect(screen, (230, 240, 255), (30, WORLD_HEIGHT + 130, 250, 40), border_radius=5)
     screen.blit(font.render("Input State:", True, BLACK), (40, WORLD_HEIGHT + 142))
     screen.blit(font_bold.render(true_state, True, BRIGHT_BLUE), (140, WORLD_HEIGHT + 140))
 
-    # --- COLUMN 2: AI FEATURES (The "Why") ---
-    pygame.draw.rect(screen, WHITE, (290, WORLD_HEIGHT + 20, 280, 160), border_radius=10)
-    screen.blit(title_font.render("Feature Extraction", True, BLACK), (300, WORLD_HEIGHT + 30))
+    # --- COLUMN 2: AI FEATURES (Shifted right to 310) ---
+    pygame.draw.rect(screen, WHITE, (310, WORLD_HEIGHT + 20, 270, 160), border_radius=10)
+    screen.blit(title_font.render("Feature Extraction", True, BLACK), (320, WORLD_HEIGHT + 30))
     
     labels = ["Mean Acc Z", "Var Acc Z", "Dom Freq", "Spec Energy", "Vert Vel"]
     for i, label in enumerate(labels):
         val_str = f"{input_features[i]:.4f}"
         y_pos = WORLD_HEIGHT + 70 + (i * 22)
-        screen.blit(font.render(label, True, DARK_GRAY), (300, y_pos))
-        screen.blit(font.render(val_str, True, BLACK), (450, y_pos))
+        screen.blit(font.render(label, True, DARK_GRAY), (320, y_pos))
+        screen.blit(font.render(val_str, True, BLACK), (460, y_pos))
 
-    # --- COLUMN 3: RAW SENSORS (The "What") ---
-    pygame.draw.rect(screen, WHITE, (590, WORLD_HEIGHT + 20, 280, 160), border_radius=10)
-    screen.blit(title_font.render("Raw Sensor Data", True, BLACK), (600, WORLD_HEIGHT + 30))
+    # --- COLUMN 3: RAW SENSORS (Shifted right to 600) ---
+    pygame.draw.rect(screen, WHITE, (600, WORLD_HEIGHT + 20, 280, 160), border_radius=10)
+    screen.blit(title_font.render("Raw Sensor Data", True, BLACK), (610, WORLD_HEIGHT + 30))
     
     # ToF Sensor
-    screen.blit(font_bold.render("ToF / Proximity:", True, DARK_GRAY), (600, WORLD_HEIGHT + 70))
-    tof_color = GREEN if tof_val < 4.0 else RED
-    screen.blit(font_bold.render(f"{tof_val:.2f} m", True, tof_color), (760, WORLD_HEIGHT + 70))
+    screen.blit(font_bold.render("ToF / Proximity:", True, DARK_GRAY), (610, WORLD_HEIGHT + 70))
+    
+    # Updated Color Logic for 8m Range
+    tof_color = GREEN if tof_val < 7.9 else RED
+    screen.blit(font_bold.render(f"{tof_val:.2f} m", True, tof_color), (770, WORLD_HEIGHT + 70))
 
     # Placeholder for future sensors (Mag, GPS)
-    screen.blit(font.render("Barometer: Active", True, DARK_GRAY), (600, WORLD_HEIGHT + 100))
-    screen.blit(font.render("Magnetometer: --", True, GRAY), (600, WORLD_HEIGHT + 125))
+    screen.blit(font.render("Barometer: Active", True, DARK_GRAY), (610, WORLD_HEIGHT + 100))
+    screen.blit(font.render("Magnetometer: --", True, GRAY), (610, WORLD_HEIGHT + 125))
 
 
 # --- MAIN LOOP ---

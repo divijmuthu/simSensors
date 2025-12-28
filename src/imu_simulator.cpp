@@ -19,8 +19,12 @@ IMUSim::IMUSim(double sample_rate_hz, const std::string& activityType)
       // prox sensor params
       m_true_distance(10.0), // Start far away
       m_latest_proximity(10.0),
-      m_prox_max_range(4.0), // 4 meters max
-      m_prox_noise_coeff(0.02) // Noise scales with distance
+      m_prox_max_range(8.0), // 8 meters max
+      m_prox_noise_coeff(0.01), // Noise scales with distance
+      // GPS (Start at San Francisco coordinates)
+      m_gps_lat(37.7749),
+      m_gps_lon(-122.4194),
+      m_world_velocity(0.0)
 {
     // Seed the random number generator
     std::random_device rd;
@@ -53,6 +57,8 @@ void IMUSim::update() {
 
     // prox sensor update
     m_latest_proximity = calculate_proximity_reading();
+    // gps + magnetometer update
+    update_gps_and_mag();
 }
 
 void IMUSim::set_curr_activity(const std::string& activity) {
@@ -197,6 +203,45 @@ double IMUSim::calculate_proximity_reading() {
     // Clamp to 0
     if (reading < 0) reading = 0.0;
     return reading;
+}
+
+void IMUSim::set_velocity(double velocity_mps) {
+    m_world_velocity = velocity_mps;
+}
+
+void IMUSim::update_gps_and_mag() {
+    // --- Magnetometer ---
+    // simulates a compass, north = +X axis
+    // moving RIGHT (vel > 0) -> Heading East (+Y)
+    // moving LEFT (vel < 0)  -> Heading West (-Y)
+    // stationary -> Keep last or drift
+    double heading_rad = 0.0;
+    if (m_world_velocity > 0.1) heading_rad = M_PI / 2.0; // East
+    else if (m_world_velocity < -0.1) heading_rad = -M_PI / 2.0; // West
+    // Add "Soft Iron" interference (wobble) based on activity
+    double wobble = 0.0;
+    if (m_activity_type == "walking" || m_activity_type == "running") {
+        wobble = 0.1 * std::sin(m_current_time * 5.0);
+    }
+    // Mag Output with Noise
+    double noise_x = m_norm_dist(m_rng) * 0.05;
+    double noise_y = m_norm_dist(m_rng) * 0.05;
+    m_latest_mag.x() = std::cos(heading_rad + wobble) + noise_x;
+    m_latest_mag.y() = std::sin(heading_rad + wobble) + noise_y;
+    m_latest_mag.z() = 0.0 + (m_norm_dist(m_rng) * 0.05); // Z is mostly flat in 2D
+
+    // --- GPS ---
+    // Lat/Lon update based on velocity
+    // 1 degree lat approx 111,000 meters
+    double meters_per_deg = 111000.0;
+    double deg_change = (m_world_velocity * m_time_step) / meters_per_deg;
+    // Move Longitude (East/West)
+    m_gps_lon += deg_change;
+    // Add GPS Jitter (Standard GPS is accurate to ~3 meters)
+    // We don't noise the *state*, we noise the *reading* (if we were outputting reading separate from state)
+    // For simplicity, let's assume m_gps_lat/lon is the "True" position, 
+    // and if we built a 'get_noisy_gps()' we would add noise there. 
+    // But for the visualizer, let's just use this integrated value.
 }
 
 // basic test
