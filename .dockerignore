@@ -1,0 +1,10 @@
+# Ignore build artifacts
+build/
+__pycache__/
+*.pyc
+*.so
+*.o
+
+# Ignore git history (saves space)
+.git/
+.gitignore
