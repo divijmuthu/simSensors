@@ -25,7 +25,10 @@ PYBIND11_MODULE(sensor_sim, m) {
         .def("get_acceleration", &IMUSim::get_acceleration)
         .def("get_gyroscope", &IMUSim::get_gyroscope)
         // add barometer getter
-        .def("get_pressure", &IMUSim::get_pressure);
+        .def("get_pressure", &IMUSim::get_pressure)
+        // expose prox sensor
+        .def("get_proximity", &IMUSim::get_proximity)
+        .def("set_obstacle_distance", &IMUSim::set_obstacle_distance, py::arg("distance_meters"));
 
     // bind FeatureExtractor to a python class
     py::class_<FeatureExtractor>(m, "FeatureExtractor")

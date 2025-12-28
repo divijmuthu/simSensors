@@ -12,9 +12,15 @@ IMUSim::IMUSim(double sample_rate_hz, const std::string& activityType)
       m_norm_dist(0.0, 1.0), // Mean 0, StdDev 1
       m_accel_bias(Eigen::Vector3d::Zero()),
       m_gyro_bias(Eigen::Vector3d::Zero()),
+      // Barometer params
       m_base_pressure(101325.0), // Standard sea level pressure
       m_pressure_noise_density(4.0), // Pascals (Barometers are noisy!)
-      m_latest_pressure(101325.0)
+      m_latest_pressure(101325.0),
+      // prox sensor params
+      m_true_distance(10.0), // Start far away
+      m_latest_proximity(10.0),
+      m_prox_max_range(4.0), // 4 meters max
+      m_prox_noise_coeff(0.02) // Noise scales with distance
 {
     // Seed the random number generator
     std::random_device rd;
@@ -44,6 +50,9 @@ void IMUSim::update() {
     double ideal_pressure = get_ideal_pressure(m_current_time);
     double noise = m_norm_dist(m_rng) * m_pressure_noise_density;
     m_latest_pressure = ideal_pressure + noise;
+
+    // prox sensor update
+    m_latest_proximity = calculate_proximity_reading();
 }
 
 void IMUSim::set_curr_activity(const std::string& activity) {
@@ -168,6 +177,26 @@ double IMUSim::get_ideal_pressure(double time_s) {
     // Physics Formula: P = P0 - (rho * g * h)
     // Approx: Drop 12 Pa per meter
     return m_base_pressure - (12.0 * height_meters);
+}
+
+void IMUSim::set_obstacle_distance(double distance_meters) {
+    m_true_distance = distance_meters;
+}
+
+double IMUSim::calculate_proximity_reading() {
+    // if target is out of range, return Max Range (or -1)
+    if (m_true_distance > m_prox_max_range) {
+        // Return max range + some random noise to show it's "searching"
+        return m_prox_max_range + (m_norm_dist(m_rng) * 0.05);
+    }
+    // SNR decays with distance.
+    // Noise increases quadratically with distance (inv square law effects)
+    double noise_std_dev = 0.01 + (m_prox_noise_coeff * std::pow(m_true_distance, 2));
+    double noise = m_norm_dist(m_rng) * noise_std_dev;
+    double reading = m_true_distance + noise;
+    // Clamp to 0
+    if (reading < 0) reading = 0.0;
+    return reading;
 }
 
 // basic test

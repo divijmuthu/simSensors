@@ -8,7 +8,7 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 FPS = 60
 SIM_RATE = 100.0
-WINDOW_SIZE = 256 # Match your C++ and Training
+WINDOW_SIZE = 256 # match your C++ and Training
 
 # Colors
 WHITE = (255, 255, 255)
@@ -22,8 +22,7 @@ MAGENTA = (200, 50, 200)# elevator
 GRAY = (200, 200, 200)
 BRIGHT_BLUE = (0, 100, 255)
 
-# --- AI CONFIGURATION ---
-# CRITICAL: This class must match train_model.py EXACTLY
+# AI config, aligns with train_model.py
 class ActivityClassifier(torch.nn.Module):
     def __init__(self):
         super(ActivityClassifier, self).__init__()
@@ -157,6 +156,48 @@ def draw_ui(screen, true_state, input_features):
         val_text = font.render(f"{label}: {input_features[i]:.4f}", True, BLACK)
         screen.blit(val_text, (460, 160 + i*40))
 
+def draw_wall_and_sensor(screen, cx, cy, sim_distance):
+    # 1. Draw the Wall (Fixed at x=700)
+    wall_x = 700
+    pygame.draw.rect(screen, (100, 50, 50), (wall_x, 100, 50, 400))
+    
+    # 2. Visualize the Sensor Cone
+    # Origin is the Stick Figure's chest
+    sensor_origin = (cx + 20, cy) 
+    
+    # Visual Range (Map 4 meters to pixels)
+    # Let's say 1 meter = 100 pixels
+    pixel_dist = sim_distance * 100
+    
+    # Clamp for visuals
+    if pixel_dist > (wall_x - cx): pixel_dist = wall_x - cx
+
+    # Sensor Status Color
+    if sim_distance >= 4.0:
+        cone_color = (200, 200, 200, 50) # Faint Gray (Out of Range)
+    else:
+        # Green intensity fades with distance
+        alpha = max(50, 255 - int(sim_distance * 60))
+        cone_color = (0, 255, 0, alpha)
+
+    # Draw "Beam" (Triangle/Cone)
+    # Enable transparency
+    s = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+    
+    beam_end_x = sensor_origin[0] + pixel_dist
+    beam_y_top = sensor_origin[1] - (pixel_dist * 0.2) # Spread
+    beam_y_bot = sensor_origin[1] + (pixel_dist * 0.2)
+    
+    points = [sensor_origin, (beam_end_x, beam_y_top), (beam_end_x, beam_y_bot)]
+    pygame.draw.polygon(s, cone_color, points)
+    screen.blit(s, (0,0))
+    
+    # 3. Draw the Text Value
+    font = pygame.font.SysFont(None, 24)
+    # Show the NOISY reading from C++
+    label = font.render(f"ToF Sensor: {sim_distance:.2f}m", True, BLACK)
+    screen.blit(label, (cx + 20, cy - 40))
+
 # --- MAIN LOOP ---
 def main():
     pygame.init()
@@ -171,6 +212,9 @@ def main():
     
     true_activity = "sitting"
     frame_count = 0
+
+    char_x = 200 # Starting X position
+    char_speed = 0
     
     # UI Variables
     pred_label = "SITTING"
@@ -197,6 +241,24 @@ def main():
                     act_idx = (act_idx + 1) % len(ACT_LIST)
                     true_activity = ACT_LIST[act_idx]
                     sim.set_curr_activity(true_activity)
+                
+                # [NEW] Manual Movement Controls for the "Game" feel
+                if event.key == pygame.K_RIGHT:
+                    char_speed = 2.0
+                if event.key == pygame.K_LEFT:
+                    char_speed = -2.0
+            
+            elif event.type == pygame.KEYUP:
+                if event.key in [pygame.K_RIGHT, pygame.K_LEFT]:
+                    char_speed = 0
+
+        # update char position
+        char_x += char_speed
+        if char_x < 50: char_x = 50
+        if char_x > 650: char_x = 650 # Stop before wall
+        # compute wall dist data to send to sim
+        dist_meters = (700 - char_x) / 100.0
+        sim.set_obstacle_distance(dist_meters)
 
         for _ in range(2): 
             sim.update()
@@ -219,6 +281,8 @@ def main():
             confidence = conf.item() * 100
 
         screen.fill(WHITE)
+        noisy_dist = sim.get_proximity()
+        draw_wall_and_sensor(screen, char_x, 300, noisy_dist)
         draw_stick_figure(screen, pred_label, confidence, frame_count)
         draw_ui(screen, true_activity.upper(), latest_features)
         
