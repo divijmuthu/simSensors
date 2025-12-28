@@ -28,7 +28,7 @@ class ActivityClassifier(nn.Module):
     def __init__(self):
         super(ActivityClassifier, self).__init__()
         # 32 neurons in layer 1
-        self.layer1 = nn.Linear(5, 64)
+        self.layer1 = nn.Linear(7, 64)
         self.relu = nn.ReLU()
         # dropout: randomly zero out 20% of neurons during training
         # forces the model to not rely on any single "noise" pixel
