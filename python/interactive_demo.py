@@ -5,7 +5,7 @@ import sensor_sim
 import math
 import time
 
-# --- CONFIGURATION ---
+# config
 WINDOW_WIDTH = 1000  
 WINDOW_HEIGHT = 700 
 FPS = 60
@@ -28,15 +28,15 @@ MAGENTA = (200, 50, 200)# elevator
 GRAY = (230, 230, 230)  
 DARK_GRAY = (50, 50, 50)
 BRIGHT_BLUE = (0, 100, 255)
+ALERT_ORANGE = (255, 100, 0)
 
 # --- AI CONFIGURATION ---
-# [UPDATED] Matches the "Big Brain" from train_model.py
 class ActivityClassifier(torch.nn.Module):
     def __init__(self):
         super(ActivityClassifier, self).__init__()
-        self.layer1 = torch.nn.Linear(7, 128) # Was 64
+        self.layer1 = torch.nn.Linear(7, 128) 
         self.relu = torch.nn.ReLU()
-        self.layer2 = torch.nn.Linear(128, 64) # Was 32
+        self.layer2 = torch.nn.Linear(128, 64) 
         self.output = torch.nn.Linear(64, 6)
         
     def forward(self, x):
@@ -60,7 +60,7 @@ def get_ai_reasoning(pred_label, features):
     if pred_label == "SITTING": return "Low Variance & Energy"
     elif pred_label in ["WALKING", "RUNNING"]: return f"Periodic Motion ({features[2]:.1f} Hz)"
     elif pred_label == "JUMPING": return "High Impact Energy"
-    elif pred_label == "STAIRS": return "Vertical Vel + Motion"
+    elif pred_label == "STAIRS": return "Vert Vel + Forward Motion" # Updated Reason
     elif pred_label == "ELEVATOR": return "Pure Vertical Velocity"
     return "Analyzing..."
 
@@ -120,7 +120,6 @@ def draw_stick_figure(screen, activity, confidence, frame_count, cx, cy):
 def draw_wall_and_sensor(screen, cx, cy, sim_distance):
     wall_x = 900
     pygame.draw.rect(screen, (150, 50, 50), (wall_x - 50, 50, 50, WORLD_HEIGHT - 50))
-    
     sensor_origin = (cx + 20, cy)
     pixel_dist = sim_distance * 100 
     if pixel_dist > (wall_x - 50 - cx): pixel_dist = wall_x - 50 - cx
@@ -138,7 +137,7 @@ def draw_wall_and_sensor(screen, cx, cy, sim_distance):
     pygame.draw.polygon(s, cone_color, points)
     screen.blit(s, (0,0))
 
-def draw_dashboard(screen, true_state, pred_state, input_features, tof_val, gps_lat, gps_lon, mag_heading, pressure, metrics):
+def draw_dashboard(screen, true_state, pred_state, input_features, tof_val, gps_lat, gps_lon, mag_heading, pressure, metrics, char_speed):
     pygame.draw.rect(screen, GRAY, (0, WORLD_HEIGHT, WINDOW_WIDTH, DASHBOARD_HEIGHT))
     pygame.draw.line(screen, DARK_GRAY, (0, WORLD_HEIGHT), (WINDOW_WIDTH, WORLD_HEIGHT), 3)
 
@@ -148,35 +147,45 @@ def draw_dashboard(screen, true_state, pred_state, input_features, tof_val, gps_
 
     # --- COL 1: METRICS ---
     pygame.draw.rect(screen, WHITE, (20, WORLD_HEIGHT + 20, 280, 210), border_radius=10)
-    screen.blit(title_font.render("System Metrics", True, BLACK), (30, WORLD_HEIGHT + 30))
+    screen.blit(title_font.render("System Benchmarks", True, BLACK), (30, WORLD_HEIGHT + 30))
     
-    pygame.draw.rect(screen, (230, 240, 255), (30, WORLD_HEIGHT + 65, 260, 35), border_radius=5)
-    screen.blit(font.render("Input:", True, BLACK), (40, WORLD_HEIGHT + 75))
-    screen.blit(font_bold.render(true_state, True, BRIGHT_BLUE), (100, WORLD_HEIGHT + 73))
-
-    labels = ["FPS (Visual)", "Inference Latency", "Classification Acc"]
-    values = [f"{metrics['fps']:.1f}", f"{metrics['latency']*1000:.2f} ms", f"{metrics['accuracy']:.1f}%"]
+    # Updated Labels
+    labels = ["C++ Sim Time (us)", "ML Latency (ms)", "Demo FPS"]
+    values = [f"{metrics['sim_time']*1e6:.1f}", f"{metrics['latency']*1000:.2f}", f"{metrics['fps']:.1f}"]
+    
     for i, (lab, val) in enumerate(zip(labels, values)):
-        y = WORLD_HEIGHT + 115 + (i * 30)
+        y = WORLD_HEIGHT + 70 + (i * 30)
         screen.blit(font.render(lab, True, DARK_GRAY), (30, y))
         screen.blit(font_bold.render(val, True, BLACK), (200, y))
+    
+    # Running Accuracy
+    screen.blit(font.render("Running Accuracy:", True, DARK_GRAY), (30, WORLD_HEIGHT + 170))
+    acc_color = GREEN if metrics['accuracy'] > 90 else (RED if metrics['accuracy'] < 70 else BLACK)
+    screen.blit(font_bold.render(f"{metrics['accuracy']:.1f}%", True, acc_color), (200, WORLD_HEIGHT + 170))
 
     # --- COL 2: EXPLAINABLE AI ---
     pygame.draw.rect(screen, WHITE, (320, WORLD_HEIGHT + 20, 320, 210), border_radius=10)
     screen.blit(title_font.render("Explainable AI", True, BLACK), (330, WORLD_HEIGHT + 30))
     
-    reason = get_ai_reasoning(pred_state, input_features)
-    screen.blit(font.render("Top Factor:", True, DARK_GRAY), (330, WORLD_HEIGHT + 70))
-    screen.blit(font_bold.render(reason, True, BRIGHT_BLUE), (330, WORLD_HEIGHT + 95))
+    # Input State & Warning Logic
+    pygame.draw.rect(screen, (230, 240, 255), (330, WORLD_HEIGHT + 65, 290, 35), border_radius=5)
+    screen.blit(font.render("Mode:", True, BLACK), (340, WORLD_HEIGHT + 75))
+    screen.blit(font_bold.render(true_state, True, BRIGHT_BLUE), (400, WORLD_HEIGHT + 73))
     
-    feat_labels = ["Mean Acc Z", "Var Acc Z", "Vert Vel", "Mag X"]
-    feat_idxs = [0, 1, 4, 5]
-    for i, idx in enumerate(feat_idxs):
-        y = WORLD_HEIGHT + 130 + (i * 20)
-        screen.blit(font.render(feat_labels[i], True, DARK_GRAY), (330, y))
-        screen.blit(font.render(f"{input_features[idx]:.3f}", True, BLACK), (500, y))
+    # [NEW] MOVEMENT WARNING
+    # If mode implies movement (Walk/Run/Stairs) but speed is 0
+    if true_state in ["WALKING", "RUNNING", "STAIRS_UP"] and abs(char_speed) < 0.1:
+        if (pygame.time.get_ticks() % 1000) < 500: # Blink
+            warn_font = pygame.font.SysFont(None, 24)
+            warn_text = warn_font.render("ACTION REQUIRED: WALK!", True, ALERT_ORANGE)
+            screen.blit(warn_text, (400, WORLD_HEIGHT + 105))
+    
+    # Top Reason
+    reason = get_ai_reasoning(pred_state, input_features)
+    screen.blit(font.render("Decision Logic:", True, DARK_GRAY), (330, WORLD_HEIGHT + 130))
+    screen.blit(font_bold.render(reason, True, BRIGHT_BLUE), (330, WORLD_HEIGHT + 155))
 
-    # --- COL 3: RAW SENSORS ---
+    # --- COL 3: SENSOR ZOO ---
     pygame.draw.rect(screen, WHITE, (660, WORLD_HEIGHT + 20, 320, 210), border_radius=10)
     screen.blit(title_font.render("Sensor Array", True, BLACK), (670, WORLD_HEIGHT + 30))
     
@@ -194,11 +203,10 @@ def draw_dashboard(screen, true_state, pred_state, input_features, tof_val, gps_
     if 45 < heading_deg < 135: heading_str = "EAST"
     elif -135 < heading_deg < -45: heading_str = "WEST"
     elif abs(heading_deg) > 135: heading_str = "SOUTH"
+    screen.blit(font.render(f"Compass: {heading_str}", True, BLACK), (670, WORLD_HEIGHT + 125))
     
-    screen.blit(font.render(f"Mag: {heading_str} ({heading_deg:.0f}°)", True, BLACK), (670, WORLD_HEIGHT + 125))
-    
-    # Barometer (Showing real pressure in hPa)
-    pressure_hpa = pressure / 100.0 # Convert Pa to hPa
+    # Barometer
+    pressure_hpa = pressure / 100.0
     screen.blit(font.render(f"Baro: {pressure_hpa:.1f} hPa", True, BLACK), (670, WORLD_HEIGHT + 150))
 
 
@@ -228,12 +236,10 @@ def main():
     
     total_frames = 0
     correct_frames = 0
-    metrics = {"fps": 0, "latency": 0, "accuracy": 0}
+    metrics = {"fps": 0, "latency": 0, "accuracy": 0, "sim_time": 0}
     
     running = True
     while running:
-        t0 = time.perf_counter()
-        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -247,23 +253,29 @@ def main():
             elif event.type == pygame.KEYUP:
                 if event.key in [pygame.K_RIGHT, pygame.K_LEFT]: char_speed = 0
 
+        # Enforce Logic: Elevator = No Walking
+        if true_activity == "elevator_up":
+            char_speed = 0
+
         char_x += char_speed
         if char_x < 50: char_x = 50
         if char_x > 850: char_x = 850 
         
         dist_meters = (900 - char_x) / 100.0
         sim.set_obstacle_distance(dist_meters)
-        
-        sim_velocity_mps = char_speed * 0.5 
-        sim.set_velocity(sim_velocity_mps)
+        sim.set_velocity(char_speed * 0.5)
 
+        # [BENCHMARK] Measure C++ Sim Time
+        t_sim_start = time.perf_counter()
         for _ in range(2): 
             sim.update()
             extractor.add_sample(sim.get_acceleration(), sim.get_gyroscope(), sim.get_magnetometer(), sim.get_pressure())
+        t_sim_end = time.perf_counter()
+        metrics["sim_time"] = (t_sim_end - t_sim_start) / 2.0 # Average per tick
 
+        # Inference
         raw_feats = np.array(extractor.compute_features())
         t_infer_start = time.perf_counter()
-        
         norm_feats = (raw_feats - train_mean) / train_std
         tensor_feats = torch.tensor(norm_feats, dtype=torch.float32).unsqueeze(0)
         
@@ -273,13 +285,13 @@ def main():
             conf, cls_idx = torch.max(probs, 1)
             pred_label = LABELS.get(cls_idx.item(), "UNKNOWN")
             confidence = conf.item() * 100
-            
-        t_infer_end = time.perf_counter()
-        metrics["latency"] = t_infer_end - t_infer_start
+        metrics["latency"] = time.perf_counter() - t_infer_start
 
         if confidence > 80.0:
             total_frames += 1
-            if pred_label.lower() == true_activity.lower():
+            if pred_label.lower().replace(" ", "") in true_activity.lower().replace("_up", ""):
+                correct_frames += 1
+            elif "stairs" in true_activity and "stairs" in pred_label.lower():
                 correct_frames += 1
         
         if total_frames > 0:
@@ -294,8 +306,10 @@ def main():
         
         draw_wall_and_sensor(screen, char_x, 250, noisy_dist)
         draw_stick_figure(screen, pred_label, confidence, frame_count, char_x, 250)
+        
+        # Pass char_speed so dashboard can warn user if stationary
         draw_dashboard(screen, true_activity.upper(), pred_label, raw_feats, 
-                       noisy_dist, gps_lat, gps_lon, mag_head, pressure, metrics)
+                       noisy_dist, gps_lat, gps_lon, mag_head, pressure, metrics, char_speed)
         
         pygame.display.flip()
         clock.tick(FPS)

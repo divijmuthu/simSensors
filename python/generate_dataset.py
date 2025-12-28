@@ -6,7 +6,8 @@ import os
 # config
 WINDOW_SIZE = 256
 SAMPLE_RATE = 100.0
-SAMPLES_PER_CLASS = 5000
+# high sample count for robustness
+SAMPLES_PER_CLASS = 5000 
 
 # Activities: (Name, Label_ID)
 ACTIVITIES = [
@@ -30,21 +31,21 @@ def generate_data():
         print(f"Generating: {act_name}...")
         sim.set_curr_activity(act_name)
         
-        # Train on MULTIPLE directions so the model isn't biased to East
-        directions = [1.0] # Default
-        if act_name in ["walking", "running"]:
-            directions = [1.0, -1.0] # East and West
+        # velocity must be incorporated effectively to distinguish activities 
+        # e.g. standing vs walking & running, stairs vs elevator
+        if act_name == "walking":
+            directions = [1.5, -1.5] # Normal Speed
+        elif act_name == "running":
+            directions = [3.0, -3.0] # Fast Speed
+        elif act_name == "stairs_up":
+            directions = [0.5, -0.5] # Slow Walk for Stairs
+        else:
+            directions = [0.0] # Sitting, Jumping, Elevator are stationary
             
         samples_per_dir = SAMPLES_PER_CLASS // len(directions)
         
-        for direction in directions:
-            # Set velocity based on activity AND direction
-            if act_name == "walking":
-                sim.set_velocity(1.5 * direction)
-            elif act_name == "running":
-                sim.set_velocity(3.0 * direction)
-            else:
-                sim.set_velocity(0.0)
+        for velocity in directions:
+            sim.set_velocity(velocity)
             
             # Warm up buffer
             for _ in range(WINDOW_SIZE):
