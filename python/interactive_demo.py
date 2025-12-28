@@ -69,10 +69,9 @@ def draw_environment_cues(screen, activity, cx, cy, frame_count):
             points.append((start_x + (i+1)*40, start_y - i*40))
         pygame.draw.lines(screen, step_color, False, points, 5)
 
-def draw_stick_figure(screen, activity, confidence, frame_count):
-    cx, cy = 200, 300
-    
+def draw_stick_figure(screen, activity, confidence, frame_count, cx, cy): # <--- Added cx, cy args
     # [NEW] Draw context first (so it's behind the person)
+    # Pass the dynamic cx, cy to the environment drawer too
     draw_environment_cues(screen, activity, cx, cy, frame_count)
 
     # Color Coding
@@ -283,7 +282,7 @@ def main():
         screen.fill(WHITE)
         noisy_dist = sim.get_proximity()
         draw_wall_and_sensor(screen, char_x, 300, noisy_dist)
-        draw_stick_figure(screen, pred_label, confidence, frame_count)
+        draw_stick_figure(screen, pred_label, confidence, frame_count, char_x, 300)
         draw_ui(screen, true_activity.upper(), latest_features)
         
         pygame.display.flip()
