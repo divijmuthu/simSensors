@@ -4,7 +4,7 @@ import torch.optim as optim
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 df = pd.read_csv("imu_dataset.csv")
 # grab data, sep features and labels
@@ -28,16 +28,16 @@ class ActivityClassifier(nn.Module):
     def __init__(self):
         super(ActivityClassifier, self).__init__()
         # 32 neurons in layer 1
-        self.layer1 = nn.Linear(7, 64)
+        self.layer1 = nn.Linear(7, 128)
         self.relu = nn.ReLU()
         # dropout: randomly zero out 20% of neurons during training
         # forces the model to not rely on any single "noise" pixel
         self.dropout = nn.Dropout(0.2)
         # another layer of 64 neurons --> 32
-        self.layer2 = nn.Linear(64, 32)
+        self.layer2 = nn.Linear(128, 64)
         # output from 32 --> 6 classes
-        self.output = nn.Linear(32, 6)
-        
+        self.output = nn.Linear(64, 6)
+
     def forward(self, x):
         x = self.layer1(x)
         x = self.relu(x)
@@ -75,6 +75,25 @@ with torch.no_grad(): # Turn off gradient calc for speed
     _, predicted = torch.max(test_outputs, 1)
     accuracy = accuracy_score(y_test, predicted)
     print(f"Test Accuracy: {accuracy * 100:.2f}%")
+
+print("\n--- Final Model Benchmark ---")
+with torch.no_grad():
+    model.eval() # Set to eval mode
+    test_outputs = model(X_test)
+    _, predicted = torch.max(test_outputs, 1)
+    
+    # Overall Accuracy
+    acc = accuracy_score(y_test, predicted)
+    print(f"Overall Accuracy: {acc * 100:.2f}%")
+    
+    # Detailed Report
+    target_names = ["Sitting", "Walking", "Running", "Jumping", "Stairs", "Elevator"]
+    print("\n--- Classification Report (Precision/Recall/F1) ---")
+    print(classification_report(y_test, predicted, target_names=target_names))
+    
+    # Confusion Matrix (Optional check)
+    # print("\n--- Confusion Matrix ---")
+    # print(confusion_matrix(y_test, predicted))
 
 # save model, mean, std for live data scaling
 torch.save({

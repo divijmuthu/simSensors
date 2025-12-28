@@ -6,7 +6,7 @@ import os
 # config
 WINDOW_SIZE = 256
 SAMPLE_RATE = 100.0
-SAMPLES_PER_CLASS = 1000
+SAMPLES_PER_CLASS = 5000
 
 # Activities: (Name, Label_ID)
 ACTIVITIES = [
