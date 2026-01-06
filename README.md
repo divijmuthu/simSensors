@@ -13,4 +13,4 @@ Then these activities can be recognized by an ML model, in this case a neural ne
 should be kept lightweight for this real-time classification scenario.
 
 # Overall pipeline
-/src contains the C++ files for simulating a stream of sensor data (imu_simulator, older name but captures all sensor streams), extracting relevant features (feature_extractor), and exposing this functionality to Python as a module (pybind_wrapper). On the python side we have generate_dataset to get simulated data as a .csv for training the model, which occurs in train_model, and this preps a PyTorch model which can be used for real time classification in the interactive_demo.
+/src contains the C++ files for simulating a stream of sensor data (imu_simulator, older name but captures all sensor streams), extracting relevant features (feature_extractor), and exposing this functionality to Python as a module (pybind_wrapper). In /python we have generate_dataset to get simulated data as a .csv for training the model, which occurs in train_model, and this preps a PyTorch model which can be used for real time classification in the interactive_demo. /build has the actual built C++ component.
